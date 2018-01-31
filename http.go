@@ -13,6 +13,7 @@ import (
 
 type HTTPClient struct {
 	http.Client
+	DefaultHeaders http.Header
 }
 
 func (c *HTTPClient) AllowInsecureTLS(v bool) (old bool) {
@@ -73,6 +74,10 @@ func (c *HTTPClient) RequestCtx(ctx context.Context, method, ct, url string, req
 
 	if ct != "" {
 		req.Header.Add("Content-Type", ct)
+	}
+
+	if len(c.DefaultHeaders) > 0 {
+		req.Header = c.DefaultHeaders
 	}
 
 	resp, err := c.Do(req)
