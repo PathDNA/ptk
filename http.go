@@ -93,6 +93,8 @@ func (c *HTTPClient) RequestCtx(ctx context.Context, method, ct, url string, req
 		_, err = io.Copy(out, resp.Body)
 	case func(r io.Reader) error:
 		err = out(resp.Body)
+	case func(status int, r io.Reader) error:
+		err = out(resp.StatusCode, resp.Body)
 	case func(r *http.Response) error:
 		err = out(resp)
 	default:
@@ -115,4 +117,13 @@ func RequestCtx(ctx context.Context, method, ct, url string, reqData, respData i
 
 func Request(method, ct, url string, reqData, respData interface{}) error {
 	return DefaultClient.Request(method, ct, url, reqData, respData)
+}
+
+type SmartResponse struct {
+	SuccessType interface{}
+	ErrorType   interface{}
+}
+
+func (sr *SmartResponse) Process(resp *http.Response) error {
+
 }
