@@ -118,12 +118,3 @@ func RequestCtx(ctx context.Context, method, ct, url string, reqData, respData i
 func Request(method, ct, url string, reqData, respData interface{}) error {
 	return DefaultClient.Request(method, ct, url, reqData, respData)
 }
-
-type SmartResponse struct {
-	SuccessType interface{}
-	ErrorType   interface{}
-}
-
-func (sr *SmartResponse) Process(resp *http.Response) error {
-
-}
