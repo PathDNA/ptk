@@ -73,12 +73,12 @@ func (c *HTTPClient) RequestCtx(ctx context.Context, method, ct, url string, req
 		req = req.WithContext(ctx)
 	}
 
-	if ct != "" {
-		req.Header.Add("Content-Type", ct)
+	for k, v := range c.DefaultHeaders {
+		req.Header[k] = v
 	}
 
-	if len(c.DefaultHeaders) > 0 {
-		req.Header = c.DefaultHeaders
+	if ct != "" {
+		req.Header.Add("Content-Type", ct)
 	}
 
 	resp, err := c.Do(req)
