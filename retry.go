@@ -5,13 +5,13 @@ import (
 	"time"
 )
 
-// Retry is an alias for RetryWithCtx(context.Background(), fn, attempts, delay, backoffMod)
+// Retry is an alias for RetryCtx(context.Background(), fn, attempts, delay, backoffMod)
 func Retry(fn func() error, attempts uint, delay time.Duration, backoffMod float64) error {
-	return RetryWithCtx(context.Background(), fn, attempts, delay, backoffMod)
+	return RetryCtx(context.Background(), fn, attempts, delay, backoffMod)
 }
 
-// RetryWithCtx calls fn every (delay * backoffMod) until it returns nil, the passed ctx is done or attempts are reached.
-func RetryWithCtx(ctx context.Context, fn func() error, attempts uint, delay time.Duration, backoffMod float64) error {
+// RetryCtx calls fn every (delay * backoffMod) until it returns nil, the passed ctx is done or attempts are reached.
+func RetryCtx(ctx context.Context, fn func() error, attempts uint, delay time.Duration, backoffMod float64) error {
 	if delay == 0 {
 		delay = time.Second
 	}
