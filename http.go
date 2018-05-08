@@ -74,7 +74,7 @@ func (c *HTTPClient) RequestCtx(ctx context.Context, method, ct, url string, req
 	}
 
 	for k, v := range c.DefaultHeaders {
-		req.Header[k] = v
+		req.Header[k] = append(make([]string, 0, len(v)), v...)
 	}
 
 	if ct != "" {
