@@ -1,10 +1,9 @@
 package cache
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
-	"io"
+	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -56,24 +55,42 @@ func (mc *MemCache) Set(key string, val interface{}, ttl time.Duration) (err err
 	return
 }
 
-func (mc *MemCache) Update(key string, fn func(old interface{}) (val interface{}, ttl time.Duration)) (err error) {
+// if ttl is -1, the key gets deleted
+// if keepOldTTL is true, the original expiry ts will be kept
+func (mc *MemCache) Update(key string, fn func(old interface{}) (val interface{}, keepOldTTL bool, ttl time.Duration)) (err error) {
+	var del bool
 	mc.mmux.Update(key, func() {
 		var old interface{}
+
 		mc.mux.RLock()
 		if ci := mc.c[key]; ci != nil {
 			old = ci.Value
 		}
 		mc.mux.RUnlock()
-		val, ttl := fn(old)
+
+		val, keepOldTTL, ttl := fn(old)
 
 		mc.mux.Lock()
+		defer mc.mux.Unlock()
+		if del = ttl == -1; del {
+			delete(mc.c, key)
+		}
 		if mc.c == nil {
 			err = os.ErrClosed
 		} else {
+			if keepOldTTL {
+				if ci := mc.c[key]; ci != nil {
+					ci.Value = val
+					return
+				}
+			}
 			mc.c[key] = &cacheItem{val, time.Now().Add(ttl).Unix()}
 		}
-		mc.mux.Unlock()
 	})
+
+	if del {
+		mc.mmux.Delete(key)
+	}
 
 	return
 }
@@ -141,13 +158,19 @@ func (mc *MemCache) Close() error {
 	return nil
 }
 
-func Key(args ...string) string {
-	h := sha1.New()
-	for _, a := range args {
-		io.WriteString(h, a)
+var delm = []byte(":")
+
+func Key(args ...interface{}) string {
+	if len(args) == 0 {
+		panic("this shouldn't happen")
 	}
 
-	return hex.EncodeToString(h.Sum(nil))
+	var b strings.Builder
+	for _, a := range args {
+		fmt.Fprintf(&b, "%v:", a)
+	}
+
+	return b.String()[:b.Len()-1]
 }
 
 type cacheItem struct {
