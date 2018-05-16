@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -37,12 +38,12 @@ func (c *HTTPClient) AllowInsecureTLS(v bool) (old bool) {
 // - method: http method (GET, PUT, POST, etc..), if empty it defaults to GET.
 // - ct: request content-type.
 // - url: the request's url.
-// - reqData: data to pass to POST/PUT requests, if it's an `io.Reader`, a `[]byte` or a `string`,
-//	it will be passed as-is, any other object will be encoded as JSON.
+// - reqData: data to pass to POST/PUT requests, if it's an `io.Reader`, a `[]byte` or a `string`, it will be passed as-is,
+//	`url.Values` will be encoded as "application/x-www-form-urlencoded", any other object will be encoded as JSON.
 // - respData: data object to get the response or `nil`, can be , `io.Writer`, `func(io.Reader) error`
 //	to read the body directly, `func(*http.Response) error` to process the actual response,
 //	or a pointer to an object to decode a JSON body into.
-func (c *HTTPClient) RequestCtx(ctx context.Context, method, ct, url string, reqData, respData interface{}) error {
+func (c *HTTPClient) RequestCtx(ctx context.Context, method, ct, uri string, reqData, respData interface{}) error {
 	var r io.Reader
 
 	switch in := reqData.(type) {
@@ -53,6 +54,11 @@ func (c *HTTPClient) RequestCtx(ctx context.Context, method, ct, url string, req
 		r = bytes.NewReader(in)
 	case string:
 		r = strings.NewReader(in)
+	case url.Values:
+		r = strings.NewReader(in.Encode())
+		if ct == "" {
+			ct = "application/x-www-form-urlencoded"
+		}
 	default:
 		var buf bytes.Buffer
 		if err := json.NewEncoder(&buf).Encode(reqData); err != nil {
@@ -64,7 +70,7 @@ func (c *HTTPClient) RequestCtx(ctx context.Context, method, ct, url string, req
 		}
 	}
 
-	req, err := http.NewRequest(method, url, r)
+	req, err := http.NewRequest(method, uri, r)
 	if err != nil {
 		return err
 	}
