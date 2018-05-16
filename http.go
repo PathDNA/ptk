@@ -15,6 +15,7 @@ import (
 type HTTPClient struct {
 	http.Client
 	DefaultHeaders http.Header
+	DefaultQuery   url.Values
 }
 
 func (c *HTTPClient) AllowInsecureTLS(v bool) (old bool) {
@@ -48,17 +49,22 @@ func (c *HTTPClient) RequestCtx(ctx context.Context, method, ct, uri string, req
 
 	switch in := reqData.(type) {
 	case nil:
+
 	case io.Reader:
 		r = in
+
 	case []byte:
 		r = bytes.NewReader(in)
+
 	case string:
 		r = strings.NewReader(in)
+
 	case url.Values:
 		r = strings.NewReader(in.Encode())
 		if ct == "" {
 			ct = "application/x-www-form-urlencoded"
 		}
+
 	default:
 		var buf bytes.Buffer
 		if err := json.NewEncoder(&buf).Encode(reqData); err != nil {
@@ -79,8 +85,21 @@ func (c *HTTPClient) RequestCtx(ctx context.Context, method, ct, uri string, req
 		req = req.WithContext(ctx)
 	}
 
-	for k, v := range c.DefaultHeaders {
-		req.Header[k] = append(make([]string, 0, len(v)), v...)
+	h := req.Header
+	for k, vs := range c.DefaultHeaders {
+		for _, v := range vs {
+			h.Add(k, v)
+		}
+	}
+
+	if len(c.DefaultQuery) > 0 {
+		q := req.URL.Query()
+		for k, vs := range c.DefaultQuery {
+			for _, v := range vs {
+				q.Add(k, v)
+			}
+		}
+		req.URL.RawQuery = q.Encode()
 	}
 
 	if ct != "" {
