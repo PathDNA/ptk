@@ -1,4 +1,4 @@
-package runner
+package bglimiter
 
 import (
 	"context"
@@ -7,11 +7,11 @@ import (
 )
 
 // New returns a new runner with no limits.
-func New() *Background { return NewWithContext(context.Background(), 0) }
+func New() *BackgroundLimiter { return NewWithContext(context.Background(), 0) }
 
 // NewWithContext returns a new runner with the given parent context and limit, if limit is <= 0 it won't have a limit.
-func NewWithContext(ctx context.Context, limit int) *Background {
-	var bg Background
+func NewWithContext(ctx context.Context, limit int) *BackgroundLimiter {
+	var bg BackgroundLimiter
 	bg.ctx, bg.cancel = context.WithCancel(ctx)
 
 	if limit > 0 {
@@ -21,7 +21,7 @@ func NewWithContext(ctx context.Context, limit int) *Background {
 	return &bg
 }
 
-type Background struct {
+type BackgroundLimiter struct {
 	wg sync.WaitGroup
 	ch chan struct{}
 
@@ -29,7 +29,7 @@ type Background struct {
 	cancel func()
 }
 
-func (bg *Background) Add(fn func(ctx context.Context) error) <-chan error {
+func (bg *BackgroundLimiter) Add(fn func(ctx context.Context) error) <-chan error {
 	errChan := make(chan error, 2)
 	if !bg.add() {
 		errChan <- context.Canceled
@@ -52,7 +52,7 @@ func (bg *Background) Add(fn func(ctx context.Context) error) <-chan error {
 	return errChan
 }
 
-func (bg *Background) AddWithTimeout(fn func(ctx context.Context) error, timeout time.Duration) <-chan error {
+func (bg *BackgroundLimiter) AddWithTimeout(fn func(ctx context.Context) error, timeout time.Duration) <-chan error {
 	errChan := make(chan error, 2)
 
 	if !bg.add() {
@@ -81,20 +81,20 @@ func (bg *Background) AddWithTimeout(fn func(ctx context.Context) error, timeout
 	return errChan
 }
 
-func (bg *Background) Context() context.Context { return bg.ctx }
+func (bg *BackgroundLimiter) Context() context.Context { return bg.ctx }
 
-func (bg *Background) Close() error {
+func (bg *BackgroundLimiter) Close() error {
 	err := bg.ctx.Err()
 	bg.cancel()
 	return err
 }
 
-func (bg *Background) IsCanceled() bool {
+func (bg *BackgroundLimiter) IsCanceled() bool {
 	return bg.ctx.Err() != nil
 }
 
-func (bg *Background) Wait() { bg.wg.Wait() }
-func (bg *Background) WaitWithContext(ctx context.Context) error {
+func (bg *BackgroundLimiter) Wait() { bg.wg.Wait() }
+func (bg *BackgroundLimiter) WaitWithContext(ctx context.Context) error {
 	done := make(chan struct{})
 	go func() {
 		bg.wg.Wait()
@@ -111,7 +111,7 @@ func (bg *Background) WaitWithContext(ctx context.Context) error {
 	}
 }
 
-func (bg *Background) add() bool {
+func (bg *BackgroundLimiter) add() bool {
 	if bg.ch != nil {
 		bg.ch <- struct{}{}
 	}
@@ -124,7 +124,7 @@ func (bg *Background) add() bool {
 	return true
 }
 
-func (bg *Background) done() {
+func (bg *BackgroundLimiter) done() {
 	if bg.ch != nil {
 		<-bg.ch
 	}

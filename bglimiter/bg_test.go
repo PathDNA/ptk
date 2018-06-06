@@ -1,4 +1,4 @@
-package runner_test
+package bglimiter_test
 
 import (
 	"context"
@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PathDNA/ptk/runner"
+	"github.com/PathDNA/ptk/bglimiter"
 )
 
 func TestLimit(t *testing.T) {
 	var (
 		n  int64
-		bg = runner.NewWithContext(context.Background(), 2)
+		bg = bglimiter.NewWithContext(context.Background(), 2)
 	)
 
 	fn := func(ctx context.Context) error {
@@ -43,7 +43,7 @@ func TestLimit(t *testing.T) {
 		t.Fatalf("expected 99, got %d", nn)
 	}
 
-	bg = runner.NewWithContext(context.Background(), 1)
+	bg = bglimiter.NewWithContext(context.Background(), 1)
 	fn = func(ctx context.Context) error {
 		atomic.AddInt64(&n, 1)
 		time.Sleep(5 * time.Millisecond)
