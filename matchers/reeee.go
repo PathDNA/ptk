@@ -1,10 +1,11 @@
-package checkers
+package matchers
 
 import (
 	"regexp"
 )
 
 var (
+	// source http://emailregex.com/ javascript regex
 	emails = regexp.MustCompile(`^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$`)
 )
 
