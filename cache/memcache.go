@@ -158,8 +158,6 @@ func (mc *MemCache) Close() error {
 	return nil
 }
 
-var delm = []byte(":")
-
 func Key(args ...interface{}) string {
 	if len(args) == 0 {
 		panic("this shouldn't happen")
