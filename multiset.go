@@ -2,43 +2,23 @@ package ptk
 
 import "sync"
 
-// Set is a simple set.
-type Set map[string]struct{}
-
-func (s *Set) Set(key string) {
-	if *s == nil {
-		*s = make(map[string]struct{})
+func NewMultiSet(keys ...string) MultiSet {
+	ms := MultiSet{}
+	for _, key := range keys {
+		ms[key] = Set{}
 	}
-	(*s)[key] = struct{}{}
-}
-
-func (s Set) Delete(key string) {
-	delete(s, key)
-}
-
-func (s Set) Has(key string) bool {
-	_, ok := s[key]
-	return ok
-}
-
-func (s Set) Keys() []string {
-	keys := make([]string, 0, len(s))
-	for k := range s {
-		keys = append(keys, k)
-	}
-	return keys
+	return ms
 }
 
 // MultiSet is a very simple Set
 type MultiSet map[string]Set
 
-func (ms *MultiSet) Set(key, subKey string) {
-	s := ms.Sub(key)
-	s.Set(subKey)
+func (ms MultiSet) Set(key string, subKeys ...string) {
+	ms.Sub(key).Set(subKeys...)
 }
 
-func (ms MultiSet) Delete(key, subKey string) {
-	ms[key].Delete(subKey)
+func (ms MultiSet) Delete(key string, subKeys ...string) {
+	ms[key].Delete(subKeys...)
 }
 
 func (ms MultiSet) Has(key, subKey string) bool {
@@ -57,53 +37,83 @@ func (ms MultiSet) Values(key string) []string {
 	return ms[key].Keys()
 }
 
-func (ms *MultiSet) Sub(key string) Set {
-	m := (*ms)[key]
+func (ms MultiSet) Sub(key string) Set {
+	m := ms[key]
 	if m == nil {
-		if *ms == nil {
-			*ms = make(map[string]Set)
-		}
 		m = Set{}
-		(*ms)[key] = m
+		ms[key] = m
 	}
 	return m
 }
 
+func NewSafeMultiSet(keys ...string) *SafeMultiSet {
+	ms := map[string]*SafeSet{}
+	for _, key := range keys {
+		ms[key] = NewSafeSet()
+	}
+	return &SafeMultiSet{
+		ms: ms,
+	}
+}
+
 // SafeMultiSet is a concurrent-safe MultiSet
 type SafeMultiSet struct {
-	ms  MultiSet
+	ms  map[string]*SafeSet
 	mux sync.RWMutex
 }
 
-func (sms *SafeMultiSet) Set(key, subKey string) {
+func (sms *SafeMultiSet) Set(key string, subKeys ...string) {
+	sms.Sub(key).Set(subKeys...)
+}
+
+func (sms *SafeMultiSet) Delete(key string, subKeys ...string) {
+	if ss := sms.rsub(key); ss != nil {
+		ss.Delete(subKeys...)
+	}
+}
+
+func (sms *SafeMultiSet) Has(key, subKey string) (ok bool) {
+	if ss := sms.rsub(key); ss != nil {
+		ok = ss.Has(subKey)
+	}
+	return
+}
+
+func (sms *SafeMultiSet) Keys() (keys []string) {
+	sms.mux.RLock()
+	keys = make([]string, 0, len(sms.ms))
+	for k := range sms.ms {
+		keys = append(keys, k)
+	}
+	sms.mux.RUnlock()
+	return
+}
+
+func (sms *SafeMultiSet) Values(key string) (vals []string) {
+	if ss := sms.rsub(key); ss != nil {
+		vals = ss.Keys()
+	}
+	return
+}
+
+func (sms *SafeMultiSet) Sub(key string) (ss *SafeSet) {
+	if ss = sms.rsub(key); ss != nil {
+		return
+	}
+
 	sms.mux.Lock()
-	sms.ms.Set(key, subKey)
+	if ss = sms.ms[key]; ss == nil {
+		ss = NewSafeSet()
+		sms.ms[key] = ss
+	}
 	sms.mux.Unlock()
+
+	return ss
 }
 
-func (sms *SafeMultiSet) Delete(key, subKey string) {
-	sms.mux.Lock()
-	sms.ms.Delete(key, subKey)
-	sms.mux.Unlock()
-}
-
-func (sms *SafeMultiSet) Has(key, subKey string) bool {
+func (sms *SafeMultiSet) rsub(key string) (ss *SafeSet) {
 	sms.mux.RLock()
-	ok := sms.ms.Has(key, subKey)
+	ss = sms.ms[key]
 	sms.mux.RUnlock()
-	return ok
-}
-
-func (sms *SafeMultiSet) Keys() []string {
-	sms.mux.RLock()
-	keys := sms.ms.Keys()
-	sms.mux.RUnlock()
-	return keys
-}
-
-func (sms *SafeMultiSet) Values(key string) []string {
-	sms.mux.RLock()
-	vals := sms.ms.Values(key)
-	sms.mux.RUnlock()
-	return vals
+	return
 }

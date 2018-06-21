@@ -19,7 +19,7 @@ func HashPassword(password string, cost int) (string, error) {
 		cost = DefaultBcryptRounds
 	}
 
-	h, err := bcrypt.GenerateFromPassword([]byte(password), DefaultBcryptRounds)
+	h, err := bcrypt.GenerateFromPassword([]byte(password), cost)
 	return string(h), err
 }
 
