@@ -47,7 +47,7 @@ func (mc *MemCache) Set(key string, val interface{}, ttl time.Duration) (err err
 		if mc.c == nil {
 			err = os.ErrClosed
 		} else {
-			mc.c[key] = &cacheItem{val, time.Now().Add(ttl).Unix()}
+			mc.c[key] = &cacheItem{Value: val, ExpiresAt: time.Now().Add(ttl).Unix()}
 		}
 		mc.mux.Unlock()
 	})
@@ -84,7 +84,7 @@ func (mc *MemCache) Update(key string, fn func(old interface{}) (val interface{}
 					return
 				}
 			}
-			mc.c[key] = &cacheItem{val, time.Now().Add(ttl).Unix()}
+			mc.c[key] = &cacheItem{Value: val, ExpiresAt: time.Now().Add(ttl).Unix()}
 		}
 	})
 

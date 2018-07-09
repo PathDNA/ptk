@@ -5,11 +5,32 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
-
-	"github.com/missionMeteora/apiserv"
 )
 
-type M = apiserv.M
+// M is a QoL shortcut for map[string]interface{}
+type M map[string]interface{}
+
+// ToJSON returns a string json representation of M, mostly for debugging.
+func (m M) ToJSON(indent bool) string {
+	if m == nil {
+		return "{}"
+	}
+	j, _ := MarshalJSON(indent, m)
+	return j
+}
+
+func MarshalJSON(indent bool, v interface{}) (string, error) {
+	var (
+		j   []byte
+		err error
+	)
+	if indent {
+		j, err = json.MarshalIndent(v, "", "\t")
+	} else {
+		j, err = json.Marshal(v)
+	}
+	return string(j), err
+}
 
 // PipeJSONObject uses an io.Pipe to stream an M rather than keeping it in memory.
 // if the type of value is io.Reader, it will be directly streamed (so it must be valid JSON).
