@@ -7,13 +7,17 @@ import (
 	"strings"
 )
 
-type WrappedError struct {
+func ErrorWithLine(err error) error {
+	return Error{Msg: RuntimeLine(1), Err: err}
+}
+
+type Error struct {
 	Msg string
 	Err error
 }
 
-func (we WrappedError) Error() string {
-	return fmt.Sprintf("%s: %v", we.Msg, we.Err)
+func (e Error) Error() string {
+	return fmt.Sprintf("%s: %v", e.Msg, e.Err)
 }
 
 type Errors []error
@@ -27,21 +31,21 @@ func (es *Errors) Push(err error) (pushed bool) {
 
 func (es *Errors) PushWithLine(err error) (pushed bool) {
 	if pushed = err != nil; pushed {
-		*es = append(*es, WrappedError{Msg: RuntimeLine(1), Err: err})
+		*es = append(*es, Error{Msg: RuntimeLine(1), Err: err})
 	}
 	return
 }
 
 func (es *Errors) Wrap(msg string, err error) (pushed bool) {
 	if pushed = err != nil; pushed {
-		*es = append(*es, WrappedError{Msg: msg, Err: err})
+		*es = append(*es, Error{Msg: msg, Err: err})
 	}
 	return
 }
 
 func (es *Errors) WrapWithLine(msg string, err error) (pushed bool) {
 	if pushed = err != nil; pushed {
-		*es = append(*es, WrappedError{Msg: RuntimeLine(1), Err: WrappedError{Msg: msg, Err: err}})
+		*es = append(*es, Error{Msg: RuntimeLine(1), Err: Error{Msg: msg, Err: err}})
 	}
 	return
 }
