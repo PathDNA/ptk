@@ -93,7 +93,6 @@ func (c *HTTPClient) RequestCtx(ctx context.Context, method, ct, uri string, req
 	if err != nil {
 		return fmt.Errorf("%s error: %v", req.URL, err)
 	}
-	defer resp.Body.Close()
 
 	switch out := respData.(type) {
 	case nil:
@@ -108,6 +107,7 @@ func (c *HTTPClient) RequestCtx(ctx context.Context, method, ct, uri string, req
 	default:
 		err = json.NewDecoder(resp.Body).Decode(out)
 	}
+	resp.Body.Close()
 
 	return err
 }
