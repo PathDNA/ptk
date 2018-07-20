@@ -85,23 +85,6 @@ func (c *HTTPClient) RequestCtx(ctx context.Context, method, ct, uri string, req
 		req = req.WithContext(ctx)
 	}
 
-	h := req.Header
-	for k, vs := range c.DefaultHeaders {
-		for _, v := range vs {
-			h.Add(k, v)
-		}
-	}
-
-	if len(c.DefaultQuery) > 0 {
-		q := req.URL.Query()
-		for k, vs := range c.DefaultQuery {
-			for _, v := range vs {
-				q.Add(k, v)
-			}
-		}
-		req.URL.RawQuery = q.Encode()
-	}
-
 	if ct != "" {
 		req.Header.Add("Content-Type", ct)
 	}
@@ -127,6 +110,29 @@ func (c *HTTPClient) RequestCtx(ctx context.Context, method, ct, uri string, req
 	}
 
 	return err
+}
+
+func (c *HTTPClient) Do(req *http.Request) (*http.Response, error) {
+	if len(c.DefaultHeaders) > 0 {
+		h := req.Header
+		for k, vs := range c.DefaultHeaders {
+			if h[k] == nil {
+				h[k] = vs
+			}
+		}
+	}
+
+	if len(c.DefaultQuery) > 0 {
+		q := req.URL.Query()
+		for k, vs := range c.DefaultQuery {
+			if q[k] == nil {
+				q[k] = vs
+			}
+		}
+		req.URL.RawQuery = q.Encode()
+	}
+
+	return c.Client.Do(req)
 }
 
 // Request is a wrapper for `RequestCtx(context.Background(), method, ct, url, reqData, respData)`
