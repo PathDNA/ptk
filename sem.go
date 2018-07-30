@@ -1,7 +1,6 @@
 package ptk
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -35,22 +34,6 @@ func (s *Sem) Add(n int) {
 	}
 
 	s.wg.Add(n)
-}
-
-func Add(n int) {
-	if n == 0 {
-		return
-	}
-
-	if n > 0 {
-		for i := 0; i < n; i++ {
-			fmt.Println(i, n, i-n, n-i)
-		}
-	} else {
-		for i := n; i > 0; i-- {
-			fmt.Println(i, n, i-n, n-i)
-		}
-	}
 }
 
 func (s *Sem) Done() {
