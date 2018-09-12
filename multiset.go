@@ -14,7 +14,8 @@ func NewMultiSet(keys ...string) MultiSet {
 type MultiSet map[string]Set
 
 func (ms MultiSet) Set(key string, subKeys ...string) {
-	ms.Sub(key).Set(subKeys...)
+	m := ms.Sub(key)
+	m.Set(subKeys...)
 }
 
 func (ms MultiSet) Delete(key string, subKeys ...string) {

@@ -1,14 +1,30 @@
 package ptk
 
-import "sync"
+import (
+	"encoding/json"
+	"sort"
+	"sync"
+)
+
+func NewSet(keys ...string) Set {
+	s := Set{}
+	s.Set(keys...)
+	return s
+}
 
 // Set is a simple set.
 type Set map[string]struct{}
 
-func (s Set) Set(keys ...string) {
+func (s *Set) Set(keys ...string) {
+	sm := *s
+	if sm == nil {
+		sm = Set{}
+		*s = sm
+	}
+
 	var e struct{}
 	for _, k := range keys {
-		s[k] = e
+		sm[k] = e
 	}
 }
 
@@ -33,6 +49,20 @@ func (s Set) Keys() []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+func (s Set) MarshalJSON() ([]byte, error) {
+	keys := s.Keys()
+	sort.Strings(keys)
+	return json.Marshal(keys)
+}
+
+func (s *Set) UnmarshalJSON(data []byte) (err error) {
+	var keys []string
+	if err = json.Unmarshal(data, &keys); err == nil {
+		s.Set(keys...)
+	}
+	return
 }
 
 func NewSafeSet(keys ...string) *SafeSet {
@@ -80,4 +110,18 @@ func (ss *SafeSet) Keys() []string {
 	keys := ss.s.Keys()
 	ss.mux.RUnlock()
 	return keys
+}
+
+func (ss *SafeSet) MarshalJSON() ([]byte, error) {
+	ss.mux.RLock()
+	b, err := ss.s.MarshalJSON()
+	ss.mux.RUnlock()
+	return b, err
+}
+
+func (ss *SafeSet) UnmarshalJSON(data []byte) error {
+	ss.mux.Lock()
+	err := ss.s.UnmarshalJSON(data)
+	ss.mux.Unlock()
+	return err
 }
