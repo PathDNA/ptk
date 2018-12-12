@@ -36,10 +36,12 @@ func (s *Sem) Add(n int) {
 	s.wg.Add(n)
 }
 
-func (s *Sem) Run(fn func() error) error {
+func (s *Sem) Run(fn func()) {
 	s.Add(1)
-	defer s.Done()
-	return fn()
+	go func() {
+		defer s.Done()
+		fn()
+	}()
 }
 
 func (s *Sem) Done() {
